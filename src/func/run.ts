@@ -1,4 +1,4 @@
-import {info} from '@actions/core'
+import {group, info} from '@actions/core'
 import * as github from '@actions/github'
 import * as path from 'path'
 import * as fs from 'fs'
@@ -7,38 +7,53 @@ import {execute} from './execute'
 import {ActionInterface, isNullOrUndefined} from './input'
 
 export async function run(action: ActionInterface): Promise<void> {
-  if (isNullOrUndefined(action.token)) {
-    throw new Error(`Input 'token' is missing.`)
-  }
+  await group('Check Inputs', async () => {
+    if (isNullOrUndefined(action.token)) {
+      throw new Error(`Input 'token' is missing.`)
+    }
 
-  if (isNullOrUndefined(action.ref)) {
-    throw new Error(`Input 'ref' is missing.`)
-  }
+    if (isNullOrUndefined(action.ref)) {
+      throw new Error(`Input 'ref' is missing.`)
+    }
 
-  if (isNullOrUndefined(action.repositoryName)) {
-    throw new Error(`GitHub 'repositoryName' is missing.`)
-  }
+    if (isNullOrUndefined(action.repositoryName)) {
+      throw new Error(`GitHub 'repositoryName' is missing.`)
+    }
 
-  if (isNullOrUndefined(action.workspace)) {
-    throw new Error(`GitHub 'workspace' is missing.`)
-  }
+    if (isNullOrUndefined(action.workspace)) {
+      throw new Error(`GitHub 'workspace' is missing.`)
+    }
+  })
 
   try {
-    const root = path.resolve(path.join(action.workspace, '..'))
-    const packagesDir = await build(action.workspace, root)
-    for (const dir of fs.readdirSync(packagesDir)) {
-      const pluginDir = path.join(packagesDir, dir)
-      if (!fs.statSync(pluginDir).isDirectory()) {
-        return
+    let packagesDir: string = ''
+    await group('Build Plugin', async () => {
+      const root = path.resolve(path.join(action.workspace, '..'))
+      packagesDir = await build(action.workspace, root)
+    })
+
+    await group('Release Plugin', async () => {
+      for (const dir of fs.readdirSync(packagesDir)) {
+        const pluginDir = path.join(packagesDir, dir)
+        if (!fs.statSync(pluginDir).isDirectory()) {
+          return
+        }
+        const manifestPath = path.join(pluginDir, 'manifest.yml')
+        if (!fs.existsSync(manifestPath)) {
+          return
+        }
+
+        await group(`Release Plugin ${path.basename(pluginDir)}`, async () => {
+          await release(
+            action.token,
+            action.repositoryName,
+            action.ref.replace(/^refs\/heads\//, ''),
+            pluginDir,
+            action.force
+          )
+        })
       }
-      await release(
-        action.token,
-        action.repositoryName,
-        action.ref.replace(/^refs\/heads\//, ''),
-        pluginDir,
-        action.force
-      )
-    }
+    })
   } catch (error) {
     throw error
   }
@@ -71,7 +86,7 @@ export async function build(plugin_repo_path: string, root: string) {
   await execute(`mbox init plugin -v`, workspaceRoot)
   await execute(`mbox add ${plugin_repo_path} --mode=copy -v`, workspaceRoot)
 
-  await execute(`mbox bundle install`, workspaceRoot)
+  await execute(`mbox bundle install -v`, workspaceRoot)
   await execute(`mbox pod install -v`, workspaceRoot)
   await execute(`mbox plugin build --force -v --no-test`, workspaceRoot)
 

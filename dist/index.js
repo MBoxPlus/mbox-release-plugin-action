@@ -144,28 +144,41 @@ const execute_1 = __nccwpck_require__(4905);
 const input_1 = __nccwpck_require__(2809);
 function run(action) {
     return __awaiter(this, void 0, void 0, function* () {
-        if (input_1.isNullOrUndefined(action.token)) {
-            throw new Error(`Input 'token' is missing.`);
-        }
-        if (input_1.isNullOrUndefined(action.ref)) {
-            throw new Error(`Input 'ref' is missing.`);
-        }
-        if (input_1.isNullOrUndefined(action.repositoryName)) {
-            throw new Error(`GitHub 'repositoryName' is missing.`);
-        }
-        if (input_1.isNullOrUndefined(action.workspace)) {
-            throw new Error(`GitHub 'workspace' is missing.`);
-        }
-        try {
-            const root = path.resolve(path.join(action.workspace, '..'));
-            const packagesDir = yield build(action.workspace, root);
-            for (const dir of fs.readdirSync(packagesDir)) {
-                const pluginDir = path.join(packagesDir, dir);
-                if (!fs.statSync(pluginDir).isDirectory()) {
-                    return;
-                }
-                yield release(action.token, action.repositoryName, action.ref.replace(/^refs\/heads\//, ''), pluginDir, action.force);
+        yield core_1.group('Check Inputs', () => __awaiter(this, void 0, void 0, function* () {
+            if (input_1.isNullOrUndefined(action.token)) {
+                throw new Error(`Input 'token' is missing.`);
             }
+            if (input_1.isNullOrUndefined(action.ref)) {
+                throw new Error(`Input 'ref' is missing.`);
+            }
+            if (input_1.isNullOrUndefined(action.repositoryName)) {
+                throw new Error(`GitHub 'repositoryName' is missing.`);
+            }
+            if (input_1.isNullOrUndefined(action.workspace)) {
+                throw new Error(`GitHub 'workspace' is missing.`);
+            }
+        }));
+        try {
+            let packagesDir = '';
+            yield core_1.group('Build Plugin', () => __awaiter(this, void 0, void 0, function* () {
+                const root = path.resolve(path.join(action.workspace, '..'));
+                packagesDir = yield build(action.workspace, root);
+            }));
+            yield core_1.group('Release Plugin', () => __awaiter(this, void 0, void 0, function* () {
+                for (const dir of fs.readdirSync(packagesDir)) {
+                    const pluginDir = path.join(packagesDir, dir);
+                    if (!fs.statSync(pluginDir).isDirectory()) {
+                        return;
+                    }
+                    const manifestPath = path.join(pluginDir, 'manifest.yml');
+                    if (!fs.existsSync(manifestPath)) {
+                        return;
+                    }
+                    yield core_1.group(`Release Plugin ${path.basename(pluginDir)}`, () => __awaiter(this, void 0, void 0, function* () {
+                        yield release(action.token, action.repositoryName, action.ref.replace(/^refs\/heads\//, ''), pluginDir, action.force);
+                    }));
+                }
+            }));
         }
         catch (error) {
             throw error;
@@ -202,7 +215,7 @@ function build(plugin_repo_path, root) {
         yield execute_1.execute(`mkdir mbox_workspace`, root);
         yield execute_1.execute(`mbox init plugin -v`, workspaceRoot);
         yield execute_1.execute(`mbox add ${plugin_repo_path} --mode=copy -v`, workspaceRoot);
-        yield execute_1.execute(`mbox bundle install`, workspaceRoot);
+        yield execute_1.execute(`mbox bundle install -v`, workspaceRoot);
         yield execute_1.execute(`mbox pod install -v`, workspaceRoot);
         yield execute_1.execute(`mbox plugin build --force -v --no-test`, workspaceRoot);
         const packagesDir = path.join(workspaceRoot, 'release');

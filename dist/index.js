@@ -215,6 +215,7 @@ function build(plugin_repo_path, root) {
         yield execute_1.execute(`mkdir mbox_workspace`, root);
         yield execute_1.execute(`mbox init plugin -v`, workspaceRoot);
         yield execute_1.execute(`mbox add ${plugin_repo_path} --mode=copy -v`, workspaceRoot);
+        yield execute_1.execute(`mbox bundle env`, workspaceRoot);
         yield execute_1.execute(`mbox bundle install -v`, workspaceRoot);
         yield execute_1.execute(`mbox pod install -v`, workspaceRoot);
         yield execute_1.execute(`mbox plugin build --force -v --no-test`, workspaceRoot);

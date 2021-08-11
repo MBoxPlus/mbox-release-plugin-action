@@ -86,6 +86,7 @@ export async function build(plugin_repo_path: string, root: string) {
   await execute(`mbox init plugin -v`, workspaceRoot)
   await execute(`mbox add ${plugin_repo_path} --mode=copy -v`, workspaceRoot)
 
+  await execute(`mbox bundle env`, workspaceRoot)
   await execute(`mbox bundle install -v`, workspaceRoot)
   await execute(`mbox pod install -v`, workspaceRoot)
   await execute(`mbox plugin build --force -v --no-test`, workspaceRoot)

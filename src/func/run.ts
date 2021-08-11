@@ -19,20 +19,23 @@ export async function run(action: ActionInterface): Promise<void> {
     throw new Error(`GitHub 'workspace' is missing.`)
   }
 
-  const root = path.resolve(path.join(action.workspace, '..'))
-  const packagesDir = await build(action.workspace, root)
-
-  for (const dir of fs.readdirSync(packagesDir)) {
-    const pluginDir = path.join(packagesDir, dir)
-    if (!fs.statSync(pluginDir).isDirectory()) {
-      return
+  try {
+    const root = path.resolve(path.join(action.workspace, '..'))
+    const packagesDir = await build(action.workspace, root)
+    for (const dir of fs.readdirSync(packagesDir)) {
+      const pluginDir = path.join(packagesDir, dir)
+      if (!fs.statSync(pluginDir).isDirectory()) {
+        return
+      }
+      await release(
+        action.token,
+        action.repositoryName,
+        packagesDir,
+        action.force
+      )
     }
-    await release(
-      action.token,
-      action.repositoryName,
-      packagesDir,
-      action.force
-    )
+  } catch (error) {
+    throw error
   }
 }
 

@@ -147,14 +147,19 @@ function run(action) {
         if (!action.workspace || action.workspace.length == 0) {
             throw new Error(`GitHub 'workspace' is missing.`);
         }
-        const root = path.resolve(path.join(action.workspace, '..'));
-        const packagesDir = yield build(action.workspace, root);
-        for (const dir of fs.readdirSync(packagesDir)) {
-            const pluginDir = path.join(packagesDir, dir);
-            if (!fs.statSync(pluginDir).isDirectory()) {
-                return;
+        try {
+            const root = path.resolve(path.join(action.workspace, '..'));
+            const packagesDir = yield build(action.workspace, root);
+            for (const dir of fs.readdirSync(packagesDir)) {
+                const pluginDir = path.join(packagesDir, dir);
+                if (!fs.statSync(pluginDir).isDirectory()) {
+                    return;
+                }
+                yield release(action.token, action.repositoryName, packagesDir, action.force);
             }
-            yield release(action.token, action.repositoryName, packagesDir, action.force);
+        }
+        catch (error) {
+            throw error;
         }
     });
 }

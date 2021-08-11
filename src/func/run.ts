@@ -7,7 +7,7 @@ import {execute} from './execute'
 import {ActionInterface, isNullOrUndefined} from './input'
 
 export async function run(action: ActionInterface): Promise<void> {
-  if (!isNullOrUndefined(action.token)) {
+  if (isNullOrUndefined(action.token)) {
     throw new Error(`Input 'token' is missing.`)
   }
 

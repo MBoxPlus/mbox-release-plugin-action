@@ -144,7 +144,7 @@ const execute_1 = __nccwpck_require__(4905);
 const input_1 = __nccwpck_require__(2809);
 function run(action) {
     return __awaiter(this, void 0, void 0, function* () {
-        if (!input_1.isNullOrUndefined(action.token)) {
+        if (input_1.isNullOrUndefined(action.token)) {
             throw new Error(`Input 'token' is missing.`);
         }
         if (input_1.isNullOrUndefined(action.ref)) {

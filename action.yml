@@ -5,6 +5,10 @@ inputs:
   token:
     required: true
     description: 'GitHub Token'
+  ref:
+    required: true
+    description: "Branch ref. It must be the same with the workspace repo's current branch"
+    default: ${{github.ref}}
   force:
     required: true
     description: 'Override the previous release if exists'

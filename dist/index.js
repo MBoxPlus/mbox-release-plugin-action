@@ -77,18 +77,23 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var _a;
+var _a, _b;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.action = void 0;
+exports.action = exports.isNullOrUndefined = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const { pusher, repository } = github.context.payload;
+const isNullOrUndefined = (value) => typeof value === 'undefined' || value === null || value === '';
+exports.isNullOrUndefined = isNullOrUndefined;
 exports.action = {
     token: core.getInput('token'),
     force: core.getBooleanInput('force'),
     repositoryName: (_a = (repository && repository.full_name
         ? repository.full_name
         : process.env.GITHUB_REPOSITORY)) !== null && _a !== void 0 ? _a : '',
+    ref: exports.isNullOrUndefined(core.getInput('ref'))
+        ? core.getInput('ref')
+        : (_b = process.env.GITHUB_WORKSPACE) !== null && _b !== void 0 ? _b : '',
     workspace: process.env.GITHUB_WORKSPACE || ''
 };
 
@@ -155,7 +160,7 @@ function run(action) {
                 if (!fs.statSync(pluginDir).isDirectory()) {
                     return;
                 }
-                yield release(action.token, action.repositoryName, packagesDir, action.force);
+                yield release(action.token, action.repositoryName, action.ref.replace(/^refs\/heads\//, ''), pluginDir, action.force);
             }
         }
         catch (error) {
@@ -168,7 +173,11 @@ function build(plugin_repo_path, root) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             core_1.info('Check MBox Installed');
-            const exist = yield execute_1.execute(`command -v mbox`, root);
+            const exist = null;
+            try {
+                const exist = yield execute_1.execute(`command -v mbox`, root);
+            }
+            catch (error) { }
             if (!exist) {
                 core_1.info('Installing mbox');
                 yield execute_1.execute(`brew tap MBoxPlus/homebrew-tap`, root);
@@ -196,9 +205,14 @@ function build(plugin_repo_path, root) {
     });
 }
 exports.build = build;
-function release(token, repoName, packageDir, force) {
+function release(token, repoName, branch, packageDir, force) {
     return __awaiter(this, void 0, void 0, function* () {
-        const pluginInfo = YAML.parse(fs.readFileSync(path.join(packageDir, 'manifest.yml'), 'utf8'));
+        const manifestPath = path.join(packageDir, 'manifest.yml');
+        if (!fs.existsSync(manifestPath)) {
+            core_1.info(`${packageDir} is not the directory of a plugin package.`);
+            return;
+        }
+        const pluginInfo = YAML.parse(fs.readFileSync(manifestPath, 'utf8'));
         const version = pluginInfo['VERSION'];
         const name = pluginInfo['NAME'];
         core_1.info(`Archiving Plugin [${name}]`);
@@ -206,11 +220,17 @@ function release(token, repoName, packageDir, force) {
         yield execute_1.execute(`tar -czf ${path.basename(packageDir)}.tar.gz ${path.basename(packageDir)}`, path.dirname(packageDir));
         const api = github.getOctokit(token).rest;
         const [owner, repo] = repoName.split('/');
-        const result = (yield api.repos.getReleaseByTag({
-            owner,
-            repo,
-            tag: `v${version}`
-        })).data;
+        let result = null;
+        try {
+            const result = (yield api.repos.getReleaseByTag({
+                owner,
+                repo,
+                tag: `v${version}`
+            })).data;
+        }
+        catch (error) {
+            core_1.info(`[${name}]: v${version} has not been created.`);
+        }
         if (result && result.id) {
             if (force) {
                 core_1.info(`[${name}]: v${version} has already exists.`);
@@ -221,7 +241,7 @@ function release(token, repoName, packageDir, force) {
         }
         let upload_url = null;
         if (!result || !result.id) {
-            core_1.info(`Create Release Asset [name=v${version}, tag_name=v${version}, target_commitish=main]`);
+            core_1.info(`Create Release Asset [name=v${version}, tag_name=v${version}, target_commitish=${branch}]`);
             upload_url = (yield api.repos.createRelease({
                 owner,
                 repo,
@@ -231,14 +251,14 @@ function release(token, repoName, packageDir, force) {
             })).data.upload_url;
         }
         else if (result.id && force) {
-            core_1.info(`Update Release Asset [name=v${version}, tag_name=v${version}, target_commitish=main]`);
+            core_1.info(`Update Release Asset [name=v${version}, tag_name=v${version}, target_commitish=${branch}]`);
             upload_url = (yield api.repos.updateRelease({
                 owner,
                 repo,
                 release_id: result.id,
                 name: `v${version}`,
                 tag_name: `v${version}`,
-                target_commitish: 'main'
+                target_commitish: branch
             })).data.upload_url;
         }
         if (!upload_url) {
@@ -14489,7 +14509,10 @@ const core_1 = __nccwpck_require__(2186);
 const input_1 = __nccwpck_require__(2809);
 const run_1 = __nccwpck_require__(8443);
 try {
-    run_1.run(input_1.action);
+    run_1.run(input_1.action).catch(error => {
+        console.error(error);
+        core_1.setFailed(error.message);
+    });
 }
 catch (error) {
     core_1.setFailed(error.message);

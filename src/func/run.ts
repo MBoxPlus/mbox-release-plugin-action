@@ -30,6 +30,7 @@ export async function run(action: ActionInterface): Promise<void> {
       await release(
         action.token,
         action.repositoryName,
+        action.ref.replace(/^refs\/heads\//, ''),
         pluginDir,
         action.force
       )
@@ -76,6 +77,7 @@ export async function build(plugin_repo_path: string, root: string) {
 export async function release(
   token: string,
   repoName: string,
+  branch: string,
   packageDir: string,
   force: boolean
 ) {
@@ -122,7 +124,7 @@ export async function release(
   let upload_url: string | null = null
   if (!result || !result.id) {
     info(
-      `Create Release Asset [name=v${version}, tag_name=v${version}, target_commitish=main]`
+      `Create Release Asset [name=v${version}, tag_name=v${version}, target_commitish=${branch}]`
     )
     upload_url = (
       await api.repos.createRelease({
@@ -135,7 +137,7 @@ export async function release(
     ).data.upload_url
   } else if (result.id && force) {
     info(
-      `Update Release Asset [name=v${version}, tag_name=v${version}, target_commitish=main]`
+      `Update Release Asset [name=v${version}, tag_name=v${version}, target_commitish=${branch}]`
     )
     upload_url = (
       await api.repos.updateRelease({
@@ -144,7 +146,7 @@ export async function release(
         release_id: result.id,
         name: `v${version}`,
         tag_name: `v${version}`,
-        target_commitish: 'main'
+        target_commitish: branch
       })
     ).data.upload_url
   }

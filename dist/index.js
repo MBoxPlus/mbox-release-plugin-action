@@ -141,15 +141,19 @@ const path = __importStar(__nccwpck_require__(5622));
 const fs = __importStar(__nccwpck_require__(5747));
 const YAML = __importStar(__nccwpck_require__(3552));
 const execute_1 = __nccwpck_require__(4905);
+const input_1 = __nccwpck_require__(2809);
 function run(action) {
     return __awaiter(this, void 0, void 0, function* () {
-        if (!action.token || action.token.length == 0) {
+        if (!input_1.isNullOrUndefined(action.token)) {
             throw new Error(`Input 'token' is missing.`);
         }
-        if (!action.repositoryName || action.repositoryName.length == 0) {
+        if (input_1.isNullOrUndefined(action.ref)) {
+            throw new Error(`Input 'ref' is missing.`);
+        }
+        if (input_1.isNullOrUndefined(action.repositoryName)) {
             throw new Error(`GitHub 'repositoryName' is missing.`);
         }
-        if (!action.workspace || action.workspace.length == 0) {
+        if (input_1.isNullOrUndefined(action.workspace)) {
             throw new Error(`GitHub 'workspace' is missing.`);
         }
         try {

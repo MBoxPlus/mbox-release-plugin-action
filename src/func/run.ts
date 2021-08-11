@@ -4,18 +4,22 @@ import * as path from 'path'
 import * as fs from 'fs'
 import * as YAML from 'yaml'
 import {execute} from './execute'
-import {ActionInterface} from './input'
+import {ActionInterface, isNullOrUndefined} from './input'
 
 export async function run(action: ActionInterface): Promise<void> {
-  if (!action.token || action.token.length == 0) {
+  if (!isNullOrUndefined(action.token)) {
     throw new Error(`Input 'token' is missing.`)
   }
 
-  if (!action.repositoryName || action.repositoryName.length == 0) {
+  if (isNullOrUndefined(action.ref)) {
+    throw new Error(`Input 'ref' is missing.`)
+  }
+
+  if (isNullOrUndefined(action.repositoryName)) {
     throw new Error(`GitHub 'repositoryName' is missing.`)
   }
 
-  if (!action.workspace || action.workspace.length == 0) {
+  if (isNullOrUndefined(action.workspace)) {
     throw new Error(`GitHub 'workspace' is missing.`)
   }
 

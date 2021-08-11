@@ -30,7 +30,7 @@ export async function run(action: ActionInterface): Promise<void> {
       await release(
         action.token,
         action.repositoryName,
-        packagesDir,
+        pluginDir,
         action.force
       )
     }
@@ -42,7 +42,10 @@ export async function run(action: ActionInterface): Promise<void> {
 export async function build(plugin_repo_path: string, root: string) {
   try {
     info('Check MBox Installed')
-    const exist = await execute(`command -v mbox`, root)
+    const exist = null
+    try {
+      const exist = await execute(`command -v mbox`, root)
+    } catch (error) {}
     if (!exist) {
       info('Installing mbox')
       await execute(`brew tap MBoxPlus/homebrew-tap`, root)
@@ -76,9 +79,12 @@ export async function release(
   packageDir: string,
   force: boolean
 ) {
-  const pluginInfo = YAML.parse(
-    fs.readFileSync(path.join(packageDir, 'manifest.yml'), 'utf8')
-  )
+  const manifestPath = path.join(packageDir, 'manifest.yml')
+  if (!fs.existsSync(manifestPath)) {
+    info(`${packageDir} is not the directory of a plugin package.`)
+    return
+  }
+  const pluginInfo = YAML.parse(fs.readFileSync(manifestPath, 'utf8'))
   const version = pluginInfo['VERSION']
   const name = pluginInfo['NAME']
 
@@ -93,13 +99,19 @@ export async function release(
 
   const api = github.getOctokit(token).rest
   const [owner, repo] = repoName.split('/')
-  const result = (
-    await api.repos.getReleaseByTag({
-      owner,
-      repo,
-      tag: `v${version}`
-    })
-  ).data
+  let result: any | null = null
+  try {
+    const result = (
+      await api.repos.getReleaseByTag({
+        owner,
+        repo,
+        tag: `v${version}`
+      })
+    ).data
+  } catch (error) {
+    info(`[${name}]: v${version} has not been created.`)
+  }
+
   if (result && result.id) {
     if (force) {
       info(`[${name}]: v${version} has already exists.`)

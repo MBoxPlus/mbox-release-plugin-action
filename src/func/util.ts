@@ -7,5 +7,5 @@ export function insertGemSource(file: string) {
 
   fs.writeSync(fd, buffer, 0, buffer.length, 0)
   fs.writeSync(fd, data, 0, data.length, buffer.length)
-  fs.close(fd)
+  fs.closeSync(fd)
 }

@@ -142,6 +142,7 @@ const fs = __importStar(__nccwpck_require__(5747));
 const YAML = __importStar(__nccwpck_require__(3552));
 const execute_1 = __nccwpck_require__(4905);
 const input_1 = __nccwpck_require__(2809);
+const util_1 = __nccwpck_require__(3208);
 function run(action) {
     return __awaiter(this, void 0, void 0, function* () {
         yield core_1.group('Check Inputs', () => __awaiter(this, void 0, void 0, function* () {
@@ -215,8 +216,9 @@ function build(plugin_repo_path, root) {
         yield execute_1.execute(`mkdir mbox_workspace`, root);
         yield execute_1.execute(`mbox init plugin -v`, workspaceRoot);
         yield execute_1.execute(`mbox add ${plugin_repo_path} --mode=copy -v`, workspaceRoot);
-        yield execute_1.execute(`mbox bundle env`, workspaceRoot);
-        yield execute_1.execute(`mbox bundle install -v`, workspaceRoot);
+        // Fix the issue that gem source missing
+        const gemfile = path.join(workspaceRoot, 'Gemfile');
+        util_1.insertGemSource(gemfile);
         yield execute_1.execute(`mbox pod install -v`, workspaceRoot);
         yield execute_1.execute(`mbox plugin build --force -v --no-test`, workspaceRoot);
         const packagesDir = path.join(workspaceRoot, 'release');
@@ -304,6 +306,49 @@ function release(token, repoName, branch, packageDir, force) {
     });
 }
 exports.release = release;
+function inserGemSource(gemfile) {
+    throw new Error('Function not implemented.');
+}
+
+
+/***/ }),
+
+/***/ 3208:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.insertGemSource = void 0;
+const fs = __importStar(__nccwpck_require__(5747));
+function insertGemSource(file) {
+    const data = fs.readFileSync(file);
+    const fd = fs.openSync(file, 'w+');
+    const buffer = Buffer.from("source 'https://rubygems.org'\n");
+    fs.writeSync(fd, buffer, 0, buffer.length, 0);
+    fs.writeSync(fd, data, 0, data.length, buffer.length);
+    fs.close(fd);
+}
+exports.insertGemSource = insertGemSource;
 
 
 /***/ }),

@@ -5,6 +5,7 @@ import * as fs from 'fs'
 import * as YAML from 'yaml'
 import {execute} from './execute'
 import {ActionInterface, isNullOrUndefined} from './input'
+import {insertGemSource} from './util'
 
 export async function run(action: ActionInterface): Promise<void> {
   await group('Check Inputs', async () => {
@@ -86,8 +87,10 @@ export async function build(plugin_repo_path: string, root: string) {
   await execute(`mbox init plugin -v`, workspaceRoot)
   await execute(`mbox add ${plugin_repo_path} --mode=copy -v`, workspaceRoot)
 
-  await execute(`mbox bundle env`, workspaceRoot)
-  await execute(`mbox bundle install -v`, workspaceRoot)
+  // Fix the issue that gem source missing
+  const gemfile = path.join(workspaceRoot, 'Gemfile')
+  insertGemSource(gemfile)
+
   await execute(`mbox pod install -v`, workspaceRoot)
   await execute(`mbox plugin build --force -v --no-test`, workspaceRoot)
 
@@ -203,4 +206,7 @@ export async function release(
       info(`Upload Succeeded.`)
     }
   }
+}
+function inserGemSource(gemfile: string) {
+  throw new Error('Function not implemented.')
 }

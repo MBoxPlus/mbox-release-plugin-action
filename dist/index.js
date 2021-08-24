@@ -87,13 +87,14 @@ const isNullOrUndefined = (value) => typeof value === 'undefined' || value === n
 exports.isNullOrUndefined = isNullOrUndefined;
 exports.action = {
     token: core.getInput('token'),
+    buildPath: core.getInput('build-path'),
     force: core.getBooleanInput('force'),
     repositoryName: (_a = (repository && repository.full_name
         ? repository.full_name
         : process.env.GITHUB_REPOSITORY)) !== null && _a !== void 0 ? _a : '',
-    ref: exports.isNullOrUndefined(core.getInput('ref'))
+    ref: (_b = (exports.isNullOrUndefined(core.getInput('ref'))
         ? core.getInput('ref')
-        : (_b = process.env.GITHUB_WORKSPACE) !== null && _b !== void 0 ? _b : '',
+        : process.env.GITHUB_REF)) !== null && _b !== void 0 ? _b : '',
     workspace: process.env.GITHUB_WORKSPACE || ''
 };
 
@@ -161,10 +162,15 @@ function run(action) {
         }));
         try {
             let packagesDir = '';
-            yield core_1.group('Build Plugin', () => __awaiter(this, void 0, void 0, function* () {
-                const root = path.resolve(path.join(action.workspace, '..'));
-                packagesDir = yield build(action.workspace, root);
-            }));
+            if (action.buildPath) {
+                packagesDir = action.buildPath;
+            }
+            else {
+                yield core_1.group('Build Plugin', () => __awaiter(this, void 0, void 0, function* () {
+                    const root = path.resolve(path.join(action.workspace, '..'));
+                    packagesDir = yield build(action.workspace, root);
+                }));
+            }
             yield core_1.group('Release Plugin', () => __awaiter(this, void 0, void 0, function* () {
                 for (const dir of fs.readdirSync(packagesDir)) {
                     const pluginDir = path.join(packagesDir, dir);

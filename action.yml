@@ -5,6 +5,9 @@ inputs:
   token:
     required: true
     description: 'GitHub Token'
+  build-path:
+    required: false
+    description: 'Plugin build path'
   ref:
     required: true
     description: "Branch ref. It must be the same with the workspace repo's current branch"

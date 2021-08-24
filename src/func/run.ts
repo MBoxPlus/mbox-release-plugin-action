@@ -28,10 +28,14 @@ export async function run(action: ActionInterface): Promise<void> {
 
   try {
     let packagesDir: string = ''
-    await group('Build Plugin', async () => {
-      const root = path.resolve(path.join(action.workspace, '..'))
-      packagesDir = await build(action.workspace, root)
-    })
+    if (action.buildPath) {
+      packagesDir = action.buildPath
+    } else {
+      await group('Build Plugin', async () => {
+        const root = path.resolve(path.join(action.workspace, '..'))
+        packagesDir = await build(action.workspace, root)
+      })
+    }
 
     await group('Release Plugin', async () => {
       for (const dir of fs.readdirSync(packagesDir)) {

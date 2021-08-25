@@ -175,11 +175,11 @@ function run(action) {
                 for (const dir of fs.readdirSync(packagesDir)) {
                     const pluginDir = path.join(packagesDir, dir);
                     if (!fs.statSync(pluginDir).isDirectory()) {
-                        return;
+                        continue;
                     }
                     const manifestPath = path.join(pluginDir, 'manifest.yml');
                     if (!fs.existsSync(manifestPath)) {
-                        return;
+                        continue;
                     }
                     yield core_1.group(`Release Plugin ${path.basename(pluginDir)}`, () => __awaiter(this, void 0, void 0, function* () {
                         yield release(action.token, action.repositoryName, action.ref.replace(/^refs\/heads\//, ''), pluginDir, action.force);

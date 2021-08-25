@@ -41,11 +41,11 @@ export async function run(action: ActionInterface): Promise<void> {
       for (const dir of fs.readdirSync(packagesDir)) {
         const pluginDir = path.join(packagesDir, dir)
         if (!fs.statSync(pluginDir).isDirectory()) {
-          return
+          continue
         }
         const manifestPath = path.join(pluginDir, 'manifest.yml')
         if (!fs.existsSync(manifestPath)) {
-          return
+          continue
         }
 
         await group(`Release Plugin ${path.basename(pluginDir)}`, async () => {
